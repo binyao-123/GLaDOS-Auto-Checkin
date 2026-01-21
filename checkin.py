@@ -2,16 +2,16 @@ import os
 import json
 import time
 import random
-import cloudscraper
+import requests
 from pypushdeer import PushDeer
 
 
-CHECKIN_URL = "https://glados.space"
-STATUS_URL = "https://glados.space"
+CHECKIN_URL = "https://glados.cloud/api/user/checkin"
+STATUS_URL = "https://glados.cloud/api/user/status"
 
 HEADERS_BASE = {
-    "origin": "https://glados.space",
-    "referer": "https://glados.space",
+    "origin": "https://glados.cloud",
+    "referer": "https://glados.cloud/console/checkin",
     "user-agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -21,8 +21,7 @@ HEADERS_BASE = {
 }
 
 PAYLOAD = {"token": "glados.cloud"}
-# 增加超时时间以适应 Cloudflare 验证过程
-TIMEOUT = 30
+TIMEOUT = 10
 
 
 def push(sckey: str, title: str, text: str):
@@ -46,8 +45,7 @@ def main():
         push(sckey, "GLaDOS 签到", "❌ 未检测到 COOKIES")
         return
 
-    # 使用 cloudscraper 创建会话
-    scraper = cloudscraper.create_scraper()
+    session = requests.Session()
     ok = fail = repeat = 0
     lines = []
 
@@ -60,8 +58,7 @@ def main():
         days = "-"
 
         try:
-            # 使用 scraper 会话发送请求
-            r = scraper.post(
+            r = session.post(
                 CHECKIN_URL,
                 headers=headers,
                 data=json.dumps(PAYLOAD),
@@ -84,19 +81,18 @@ def main():
                 status = "❌ 失败"
 
             # 状态接口（允许失败）
-            s = scraper.get(STATUS_URL, headers=headers, timeout=TIMEOUT)
+            s = session.get(STATUS_URL, headers=headers, timeout=TIMEOUT)
             sj = safe_json(s).get("data") or {}
             email = sj.get("email", email)
             if sj.get("leftDays") is not None:
                 days = f"{int(float(sj['leftDays']))} 天"
 
-        except Exception as e:
+        except Exception:
             fail += 1
-            status = f"❌ 异常: {e}" # 打印具体的异常信息便于调试
+            status = "❌ 异常"
 
         lines.append(f"{idx}. {email} | {status} | P:{points} | 剩余:{days}")
-        # 增加随机延迟，模拟人类行为，减少被封禁的风险
-        time.sleep(random.uniform(2, 5))
+        time.sleep(random.uniform(1, 2))
 
     title = f"GLaDOS 签到完成 ✅{ok} ❌{fail} 🔁{repeat}"
     content = "\n".join(lines)

@@ -20,7 +20,7 @@ HEADERS_BASE = {
     "content-type": "application/json;charset=UTF-8",
 }
 
-PAYLOAD = {"token": "glados.one"}
+PAYLOAD = {"token": "glados.cloud"}
 # 增加超时时间以适应 Cloudflare 验证过程
 TIMEOUT = 30
 
